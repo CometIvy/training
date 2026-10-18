@@ -81,6 +81,26 @@ except ImportError:        # 未安装 rosgraph_msgs 时不影响原有功能
 JOINT_NAMES = ['right1', 'right2', 'left1', 'left2', 'rightwheel', 'leftwheel']
 
 
+def _display_available():
+    """判断当前环境有没有可用的图形显示。
+
+    为什么必须**提前判断**、不能只靠 try/except：
+    MuJoCo 3.16 的被动查看器在 GLFW 初始化失败时，是在 C++ 层直接
+    `exit(1)`（打印 "ERROR: could not initialize GLFW"），**不抛 Python 异常**。
+    也就是说调用线程不会返回、也不会抛错，外层的 try/except 根本接不住，
+    整个节点会被直接杀掉。所以要在调用前先探测环境。
+    """
+    display = os.environ.get('DISPLAY')
+    if display:
+        # ':0' / ':1' 这类本地显示：检查对应的 X socket 是否真的存在，
+        # 避免 DISPLAY 残留（例如 SSH / VNC 断开后变量还留着）导致误判。
+        if display.startswith(':'):
+            num = display[1:].split('.')[0]
+            return os.path.exists(f'/tmp/.X11-unix/X{num}')
+        return True                     # host:0 等远程形式，交给 GLFW 自己判断
+    return bool(os.environ.get('WAYLAND_DISPLAY'))
+
+
 class WheelLegSim(Node):
     def __init__(self):
         super().__init__('wheel_leg_sim')
@@ -95,6 +115,11 @@ class WheelLegSim(Node):
         self.data = mujoco.MjData(self.model)
         self.dt = self.model.opt.timestep          # 0.002 s
         self.steps = 0
+        # 必须先 forward 一次：MjData 刚创建时所有传感器数据都是 0，
+        # 若直接发布，首个 /imu 的姿态就是无效四元数 [0, 0, 0, 0]。
+        # 校验四元数范数的控制器会拒绝计算；而本节点只在收到指令时才步进，
+        # 心跳重发的还是同样的零值 → 双方死锁。mj_forward 之后传感器才是合法初值。
+        mujoco.mj_forward(self.model, self.data)
 
         # ---- 实时节流 / 仿真时钟（默认关闭 ⇒ 行为与原文完全一致）----
         self.declare_parameter('realtime', False)
@@ -131,14 +156,21 @@ class WheelLegSim(Node):
         self.declare_parameter('cam_elevation', -12.0)  # 俯仰角 (度)
         self.viewer = None
         if self.get_parameter('viewer').value:
-            try:
-                self.viewer = mujoco.viewer.launch_passive(self.model, self.data)
-                self.aim_camera()
-                fps = float(self.get_parameter('viewer_fps').value)
-                self.create_timer(1.0 / fps, self.render)
-            except Exception as exc:                    # 无 DISPLAY / 无 GL 上下文
-                self.get_logger().warn(f'MuJoCo 查看器打开失败，改为无界面运行：{exc}')
-                self.viewer = None
+            # 必须先判断显示是否可用，不能只靠 try/except —— 原因见 _display_available()
+            if _display_available():
+                try:
+                    self.viewer = mujoco.viewer.launch_passive(self.model, self.data)
+                    self.aim_camera()
+                    fps = float(self.get_parameter('viewer_fps').value)
+                    self.create_timer(1.0 / fps, self.render)
+                except Exception as exc:                # GL 上下文创建失败等
+                    self.get_logger().warn(
+                        f'MuJoCo 查看器启动失败，改为无界面运行：{exc}')
+                    self.viewer = None
+            else:
+                self.get_logger().warn(
+                    '未检测到可用的图形显示（DISPLAY / WAYLAND_DISPLAY 缺失或 X socket 不存在），'
+                    '以无界面模式运行。需要 GUI 请在桌面环境启动，或用 -p viewer:=false 显式关闭。')
 
         self.get_logger().info(f'模型已加载: {xml} (dt={self.dt}s)')
         if self.viewer is not None:

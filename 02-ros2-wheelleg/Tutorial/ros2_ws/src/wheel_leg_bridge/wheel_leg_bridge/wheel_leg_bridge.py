@@ -47,10 +47,21 @@ class WheelLegBridge(Node):
         self.timer = self.create_timer(0.02, self.step)
 
     def cmd_vel_cb(self, msg):
-        """把 /cmd_vel 简单映射为左右轮力矩（差速）。"""
+        """把 /cmd_vel 映射为左右轮力矩（差速）。
+
+        ⚠️ 关键：模型里左右轮是**镜像安装**的 —— 两个轮关节的本地轴都是 (0,0,1)，
+        但世界坐标下的转轴是 right=(0,-1,0)、left=(0,+1,0)，点积 −1。
+
+        所以同一个力矩会让两轮在世界上**反向**旋转。想让它「共同前进」，
+        两轮的关节力矩必须**反号**；而「原地转向」才是**同号**。
+
+        这也是原版 robot_control_main.py 写 left = -wheel_T、right = +wheel_T 的原因。
+        """
         k = 1.0
-        self.left_torque = k * (msg.linear.x - msg.angular.z * self.track / 2.0)
-        self.right_torque = k * (msg.linear.x + msg.angular.z * self.track / 2.0)
+        forward = k * msg.linear.x                          # 共同前进分量
+        yaw = k * msg.angular.z * self.track / 2.0          # 差速分量
+        self.right_torque = forward - yaw
+        self.left_torque = -forward - yaw
 
     def step(self):
         # 执行器顺序：0-3 为腿关节，4=右轮，5=左轮（对应 XML 中 motor 定义顺序）

@@ -95,11 +95,21 @@ def step(self):
 ```python
 def cmd_vel_cb(self, msg):
     k = 1.0
-    self.left_torque  = k * (msg.linear.x - msg.angular.z * self.track / 2.0)
-    self.right_torque = k * (msg.linear.x + msg.angular.z * self.track / 2.0)
+    forward = k * msg.linear.x                    # 共同前进分量
+    yaw = k * msg.angular.z * self.track / 2.0    # 差速分量
+    self.right_torque = forward - yaw
+    self.left_torque = -forward - yaw
 ```
 
 `linear.x` 驱动前进，`angular.z` 做差动转弯。
+
+> ⚠️ **注意左右轮的符号**。模型里两个轮子是**镜像安装**的：轮关节的本地轴都是 `(0,0,1)`，
+> 但世界坐标下的转轴是 `right=(0,-1,0)`、`left=(0,+1,0)`，两者点积 **−1**。
+> 也就是说**同一个力矩会让两轮在世界上反向转**。
+>
+> 所以「共同前进」要求两轮力矩**反号**（`left = -forward`），「原地转向」才是**同号**。
+> 如果照直觉写成 `left = right = forward`，车不会前进，而是原地打转。
+> 原版 `robot_control_main.py` 里的 `left_wheel_T = -wheel_T`、`right_wheel_T = +wheel_T` 就是这个原因。
 
 ### 发布 IMU（注意四元数换序）
 

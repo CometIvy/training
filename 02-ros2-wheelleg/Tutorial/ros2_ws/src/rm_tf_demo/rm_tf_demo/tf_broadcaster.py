@@ -34,9 +34,9 @@ class TFBroadcaster(Node):
         tf.header.frame_id = 'gimbal_link'
         tf.child_frame_id = 'camera_link'
         tf.transform.translation.x = 0.1  # 相机在云台前方 0.1 m
-        # 绕 Y 轴旋转 pitch（四元数）
-        tf.transform.rotation.x = math.sin(pitch / 2.0)
-        tf.transform.rotation.y = 0.0
+        # 绕 Y 轴旋转 pitch：四元数虚部要写在 rotation.y 上（写在 .x 那是 roll）
+        tf.transform.rotation.x = 0.0
+        tf.transform.rotation.y = math.sin(pitch / 2.0)
         tf.transform.rotation.z = 0.0
         tf.transform.rotation.w = math.cos(pitch / 2.0)
         self.dynamic_br.sendTransform(tf)
