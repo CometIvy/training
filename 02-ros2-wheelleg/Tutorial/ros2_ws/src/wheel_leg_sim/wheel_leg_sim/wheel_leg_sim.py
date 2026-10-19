@@ -35,7 +35,8 @@
     ros2 run wheel_leg_sim wheel_leg_sim                            # 带 GUI（默认）
     ros2 run wheel_leg_sim wheel_leg_sim --ros-args -p viewer:=false # 无界面
 
-无图形环境（SSH / 服务器）会自动降级为无界面运行，不会崩。镜头默认跟踪机体，
+Linux 上未设置 DISPLAY / WAYLAND_DISPLAY 时会跳过查看器，自动无界面运行。
+若显示变量已设置但显示服务不可用，请显式设 viewer:=false。镜头默认跟踪机体，
 可用 -p cam_distance / cam_azimuth / cam_elevation 调整。
 
 注意：渲染要花时间，所以仿真会以"慢动作"推进（比无界面时慢很多）。
@@ -61,6 +62,7 @@
 rtf=1.0 时仿真时间 ≈ 墙钟时间，装不装 /clock 都不影响控制结果。
 """
 import os
+import sys
 import time
 
 import mujoco
@@ -93,6 +95,8 @@ class WheelLegSim(Node):
                 get_package_share_directory('wheel_leg_sim'), 'robots', 'robot.xml')
         self.model = mujoco.MjModel.from_xml_path(xml)
         self.data = mujoco.MjData(self.model)
+        # 初始化传感器而不推进时间；不能依赖查看器替我们调用 mj_forward。
+        mujoco.mj_forward(self.model, self.data)
         self.dt = self.model.opt.timestep          # 0.002 s
         self.steps = 0
 
@@ -130,13 +134,19 @@ class WheelLegSim(Node):
         self.declare_parameter('cam_azimuth', 120.0)    # 方位角 (度)
         self.declare_parameter('cam_elevation', -12.0)  # 俯仰角 (度)
         self.viewer = None
-        if self.get_parameter('viewer').value:
+        viewer_requested = self.get_parameter('viewer').value
+        if (viewer_requested and sys.platform.startswith('linux')
+                and not (os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY'))):
+            # launch_passive 在后台线程初始化 GLFW；失败时外层 except 无法接住，
+            # 调用线程可能一直等待句柄。因此无显示环境必须在调用前跳过。
+            self.get_logger().warn('未检测到显示环境，跳过 MuJoCo 查看器，使用无界面模式')
+        elif viewer_requested:
             try:
                 self.viewer = mujoco.viewer.launch_passive(self.model, self.data)
                 self.aim_camera()
                 fps = float(self.get_parameter('viewer_fps').value)
                 self.create_timer(1.0 / fps, self.render)
-            except Exception as exc:                    # 无 DISPLAY / 无 GL 上下文
+            except Exception as exc:                    # 仅处理同步抛出的启动异常
                 self.get_logger().warn(f'MuJoCo 查看器打开失败，改为无界面运行：{exc}')
                 self.viewer = None
 

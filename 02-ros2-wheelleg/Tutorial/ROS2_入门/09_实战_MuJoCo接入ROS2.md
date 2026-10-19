@@ -96,10 +96,10 @@ def step(self):
 def cmd_vel_cb(self, msg):
     k = 1.0
     self.left_torque  = k * (msg.linear.x - msg.angular.z * self.track / 2.0)
-    self.right_torque = k * (msg.linear.x + msg.angular.z * self.track / 2.0)
+    self.right_torque = -k * (msg.linear.x + msg.angular.z * self.track / 2.0)
 ```
 
-`linear.x` 驱动前进，`angular.z` 做差动转弯。
+`linear.x` 驱动前进，`angular.z` 做差动转弯。模型左右轮转轴方向相反，所以右轮力矩要取负：纯前进时左右执行器力矩异号，但两轮向同一方向滚动。
 
 ### 发布 IMU（注意四元数换序）
 
@@ -220,7 +220,7 @@ ros2 run wheel_leg_controller wheel_leg_controller
 
 | 参数 | 默认 | 说明 |
 |---|---|---|
-| `viewer` | true | 设 `false` 关闭 GUI；无图形环境（SSH/服务器）会自动降级为无界面 |
+| `viewer` | true | 设 `false` 关闭 GUI；Linux 未设置 `DISPLAY` / `WAYLAND_DISPLAY` 时自动跳过查看器 |
 | `cam_distance` | 1.2 | 镜头到机体的距离 (m) |
 | `cam_azimuth` / `cam_elevation` | 120 / -12 | 方位角、俯仰角 (度) |
 | `viewer_fps` | 60 | 渲染帧率 |
@@ -232,6 +232,8 @@ ros2 run wheel_leg_sim wheel_leg_sim --ros-args -p viewer:=false
 # 想换个角度看
 ros2 run wheel_leg_sim wheel_leg_sim --ros-args -p cam_distance:=2.0 -p cam_elevation:=-25
 ```
+
+若显示变量已设置但显示服务不可用（如失效的 SSH 显示转发），请显式设置 `viewer:=false`；GLFW 的后台初始化错误不一定能被 Python 异常捕获。
 
 > 开着 GUI 时仿真是**慢动作**运行（渲染要占时间），属正常现象——控制周期仍是"一条指令 = 一个 dt"，与墙钟速度无关，所以平衡结果不受影响。
 

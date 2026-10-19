@@ -50,7 +50,8 @@ class WheelLegBridge(Node):
         """把 /cmd_vel 简单映射为左右轮力矩（差速）。"""
         k = 1.0
         self.left_torque = k * (msg.linear.x - msg.angular.z * self.track / 2.0)
-        self.right_torque = k * (msg.linear.x + msg.angular.z * self.track / 2.0)
+        # 模型左右轮转轴相反：右轮正向滚动对应负的执行器力矩。
+        self.right_torque = -k * (msg.linear.x + msg.angular.z * self.track / 2.0)
 
     def step(self):
         # 执行器顺序：0-3 为腿关节，4=右轮，5=左轮（对应 XML 中 motor 定义顺序）
