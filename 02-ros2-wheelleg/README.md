@@ -6,7 +6,9 @@
 > 这是培训仓库的第 2 个作业目录。与第 1 次（C++ 基础）不同，这次是从零学 ROS2 并做控制，
 > 内容多得多——建议按下面「目录结构」里的章节顺序走。
 
-**连续阅读 / 飞书导入：** [ROS2 入门完整教程](ROS2_入门_完整教程.md)（仓库结构说明 + 00–09 全部章节 + 大作业）。
+**完整教程：** [ROS2 入门完整教程](ROS2_入门_完整教程.md)（仓库结构说明 + 00–09 全部章节 + 大作业）。
+
+首次打开：如果自己的 Fork 还没有本目录，先按[仓库首页的同步步骤](../README.md#以后怎样获取新作业)更新。下面的路径以第一次作业使用的 `~/venom_cpp_basics/training/` 为例，克隆在其他位置时换成自己的纯英文路径。
 
 ---
 
@@ -71,13 +73,10 @@ CMake Error: list index: 1 out of range (-1, 0)
 ## 一、先装环境
 
 **Ubuntu 22.04 + ROS 2 Humble**，再加一个 conda 环境放第三方依赖（MuJoCo 等）。
-完整说明见 [教程第 1 章](Tutorial/ROS2_入门/01_环境准备与工作区.md)，命令就是这两段：
+先按 [教程第 1 章](Tutorial/ROS2_入门/01_环境准备与工作区.md) 安装 ROS2 和 Miniforge（提供 `conda` 命令）；已经装好的不用重装。确认 `conda --version` 能运行，再创建环境：
 
 ```bash
-# 1) 装 ROS2（国内推荐鱼香ROS 一键脚本，详见第 1 章）
-source <(wget -qO- https://fishros.com/install)
-
-# 2) 建 conda 环境（Python 必须是 3.10，与 Humble 的 rclpy 匹配）
+# Python 必须是 3.10，与 Humble 的 rclpy 匹配
 conda create -n rm_ros2 python=3.10 -y
 conda activate rm_ros2
 pip install 'setuptools<72' 'empy<4' 'lark==1.1.1' \
@@ -96,30 +95,47 @@ conda activate rm_ros2
 ```bash
 conda activate rm_ros2
 source /opt/ros/humble/setup.bash
-cd Tutorial/ros2_ws
+cd ~/venom_cpp_basics/training/02-ros2-wheelleg/Tutorial/ros2_ws
 colcon build --symlink-install
 source install/setup.bash
 ```
 
-自检：开两个终端，分别跑
+自检：开两个终端，**每个终端都要激活环境并 source**，不能只在第一个终端做。
 
 ```bash
-ros2 run my_first_pkg talker      # 终端 A
-ros2 run my_first_pkg listener    # 终端 B：能收到消息就说明环境没问题
+# 终端 A
+conda activate rm_ros2
+source /opt/ros/humble/setup.bash
+cd ~/venom_cpp_basics/training/02-ros2-wheelleg/Tutorial/ros2_ws
+source install/setup.bash
+ros2 run my_first_pkg talker
 ```
+
+```bash
+# 终端 B
+conda activate rm_ros2
+source /opt/ros/humble/setup.bash
+cd ~/venom_cpp_basics/training/02-ros2-wheelleg/Tutorial/ros2_ws
+source install/setup.bash
+ros2 run my_first_pkg listener
+```
+
+B 持续打印 `收到: "Hello ROS2: N"` 就通过；用 `Ctrl+C` 停止。
 
 ---
 
 ## 三、学习顺序
 
 按 [教程 README](Tutorial/ROS2_入门/README.md) 的路线从 00 章顺下去。
-第 1～7 章在普通电脑上就能做，**第 8、9 章需要上面那个 conda 环境**。
+完成环境准备后，先学 00～07 章，再做第 09 章。**第 08 章实体串口可选**，没有电控板可以先跳过；必做平衡作业不需要实体机器人、电控板或手柄。
 
-第 9 章会先带你跑通一个教学版桥接节点，看到机器人在 MuJoCo GUI 里动起来：
+第 09 章先运行教学版桥接节点，观察 `/imu`、`/joint_states` 话题：
 
 ```bash
-ros2 run wheel_leg_sim wheel_leg_sim      # 终端 A：会弹出 MuJoCo 窗口
+ros2 run wheel_leg_bridge wheel_leg_bridge
 ```
+
+这个节点没有 GUI，也没有平衡控制，车体会倒是预期现象。作业用的是另一个节点 `wheel_leg_sim`：默认可打开 GUI，但要收到你写的控制器发来的力矩才推进仿真。切换到作业前先用 `Ctrl+C` 停掉桥接节点，不要同时运行两个仿真器。
 
 ---
 
@@ -154,4 +170,4 @@ ros2 run wheel_leg_sim wheel_leg_sim      # 终端 A：会弹出 MuJoCo 窗口
 
 ## 六、提交什么
 
-见第 9 章 5.8 节：一个能 `colcon build` 通过的新包 + 说明文档 + 录屏或 bag 文件。
+见第 9 章 5.8 节：一个能 `colcon build` 通过的新包 + 说明文档 + 录屏或 bag 文件。该节提供推送命令；推送到**自己的 Fork**，提交仓库链接和录屏 / bag 链接，不要直接推送队伍公共仓库。

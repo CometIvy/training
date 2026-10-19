@@ -202,21 +202,38 @@ float64 left_wheel    # 左轮      left_wheel_torque  -> ctrl[5]  (限幅 ±2.0
 
 ### 5.5 怎么跑
 
+**先自己创建控制器包（只执行一次）**。先完成第 4 节的构建，然后在同一个 `ros2_ws/` 工作区执行；如果已经创建过这个包，不要重复创建：
+
 ```bash
 conda activate rm_ros2
 source /opt/ros/humble/setup.bash
-cd ros2_ws
-colcon build --symlink-install
+# 当前目录应是 Tutorial/ros2_ws/，执行 ls 能看到 src/
+ros2 pkg create wheel_leg_controller \
+  --build-type ament_python \
+  --node-name wheel_leg_controller \
+  --destination-directory src \
+  --dependencies rclpy sensor_msgs geometry_msgs rm_msgs
+colcon build --symlink-install --packages-up-to wheel_leg_controller
 source install/setup.bash
+```
 
+生成的入口文件是 `src/wheel_leg_controller/wheel_leg_controller/wheel_leg_controller.py`，`setup.py` 会自动注册同名可执行命令。**生成的程序只打印 `Hi from wheel_leg_controller.` 后退出，还不是常驻 ROS 节点**。先用下面的命令确认入口能找到，再参考第 3 章把它改成继承 `Node`、使用 `rclpy.spin()` 的节点，并实现第 5.3 节的话题接口和控制回调。
+
+复用算法时，把文件放到内层 `wheel_leg_controller/` 中，与入口文件同级，并使用相对导入，例如 `from .vmc_cal import five_links_param`。不要导入原工程的 MuJoCo 传感器读取或整个主循环。
+
+启动时开两个终端，**每个终端都先执行** `conda activate rm_ros2`、`source /opt/ros/humble/setup.bash`，进入同一个工作区并 `source install/setup.bash`，再分别运行：
+
+```bash
 # 终端 A：仿真节点
 ros2 run wheel_leg_sim wheel_leg_sim
+```
 
+```bash
 # 终端 B：你的控制器
 ros2 run wheel_leg_controller wheel_leg_controller
 ```
 
-**仿真节点默认会打开 MuJoCo 查看器窗口**，可以直接看到机器人在 GUI 里实时平衡。镜头默认跟踪机体，常用参数：
+必做任务只需仿真，不需要实体机器人、电控板或手柄。**仿真节点默认会打开 MuJoCo 查看器窗口**；收到控制器的有效指令后才开始推进，在控制器尚未实现发布力矩时模型不动是正常现象。镜头默认跟踪机体，常用参数：
 
 | 参数 | 默认 | 说明 |
 |---|---|---|
@@ -292,6 +309,19 @@ ros2 topic hz /actuator_cmd      # 有频率     → 你的控制器在发指令
 1. 一个新包 `src/wheel_leg_controller/`（`ament_python`），`colcon build` 通过；
 2. 该包的 `README.md`：说明你的控制结构、K/参数来源，以及**实测的平衡时长与 pitch 曲线**；
 3. 一段 10–20 s 录屏，或 `ros2 bag record /imu /joint_states /actuator_cmd` 的 bag 文件。
+
+把录屏 / bag 的可访问链接写进控制包的 `README.md`，不要把大型录像或 bag 直接塞进 Git。确认 `origin` 是**自己的 Fork**，再在仓库根目录提交：
+
+```bash
+cd "$(git rev-parse --show-toplevel)"
+git remote -v
+git status
+git add 02-ros2-wheelleg/Tutorial/ros2_ws/src/wheel_leg_controller
+git commit -m "Complete ROS2 wheel-leg controller assignment"
+git push origin main
+```
+
+提交自己的仓库链接（如 `https://github.com/USERNAME/training`），并注明控制包位置和录屏 / bag 链接。不要直接推送队伍公共仓库，也不要修改冻结的 `wheel_leg_sim`。
 
 ### 5.9 参考资料
 

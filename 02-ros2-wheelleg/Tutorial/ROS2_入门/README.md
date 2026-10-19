@@ -24,6 +24,7 @@
 - Ubuntu 22.04 + **ROS 2 Humble**（安装见[第 1 章](01_环境准备与工作区.md)第 1 节）
 - **conda 环境 `rm_ros2`（Python 3.10）**，装 MuJoCo 等第三方依赖——第 8、9 章需要，创建方法和完整依赖清单见[第 1 章](01_环境准备与工作区.md)第 4 节
 - 编辑器：VS Code（推荐装下面这些插件）
+- **必做作业不需要硬件**：第 08 章实体串口可先跳过；第 09 章在 MuJoCo 中完成，手柄只是加分项。没有图形桌面时可用 `viewer:=false` 运行仿真。
 
 ### VS Code 插件清单
 
@@ -72,9 +73,19 @@ ros2_ws/
 ```bash
 conda activate rm_ros2
 source /opt/ros/humble/setup.bash
-cd ros2_ws
+# 路径以第一次作业的克隆位置为例，请按实际位置调整
+cd ~/venom_cpp_basics/training/02-ros2-wheelleg/Tutorial/ros2_ws
 colcon build --symlink-install
 source install/setup.bash
-ros2 run my_first_pkg talker        # 终端 A：每秒发布消息
-ros2 run my_first_pkg listener      # 终端 B：能收到消息即成功
+ros2 run my_first_pkg talker        # 终端 A：每 0.5 秒发布消息
+```
+
+另开终端 B，不能省略环境加载：
+
+```bash
+conda activate rm_ros2
+source /opt/ros/humble/setup.bash
+cd ~/venom_cpp_basics/training/02-ros2-wheelleg/Tutorial/ros2_ws
+source install/setup.bash
+ros2 run my_first_pkg listener      # 收到消息即成功
 ```
