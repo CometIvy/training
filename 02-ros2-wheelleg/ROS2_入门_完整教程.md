@@ -1,33 +1,20 @@
 # ROS2 入门完整教程：从节点通信到轮腿平衡控制
 
-面向 RoboMaster 算法组新队员，以 Python 为主线，从 ROS2 基础走到 MuJoCo 轮腿机器人双节点闭环。
-
-本教程的文档可发布到飞书，可运行代码和参考工程放在仓库里。本文件将 **00–09 共 10 篇教程** 合并成一篇，保留代码块、表格、架构图和第 09 章的大作业。分章版本保留在 `Tutorial/ROS2_入门/`。
-
-> 默认学习环境：**Ubuntu 22.04 + ROS2 Humble + Python 3.10**。Jazzy 的 Python ABI 不同，不能直接照抄本教程的环境配置。
->
-> 飞书导入：本文件可作为单篇 Markdown 导入。若相对路径图片未随文导入，请把 `Tutorial/ROS2_入门/images/wheel_leg_balance_gui.png` 上传到第 09 章对应位置；代码仍需从仓库获取。
-
 ## 阅读导航
 
-- [仓库结构与文件位置](#repository-layout)
-- [00 为什么用 ROS2](#chapter-00)
-- [01 环境准备与工作区](#chapter-01)
-- [02 turtlesim 初体验](#chapter-02)
-- [03 第一个 Python 节点](#chapter-03)
-- [04 自定义消息](#chapter-04)
-- [05 服务与参数](#chapter-05)
-- [06 launch 文件](#chapter-06)
-- [07 TF2 坐标变换](#chapter-07)
-- [08 串口对接电控板](#chapter-08)
-- [09 实战：MuJoCo 接入 ROS2](#chapter-09)
-- [第 09 章第 5 节：大作业](#chapter-09-assignment)
-- [附录 A：VS Code 插件](#appendix-vscode)
-- [附录 B：验证范围与结果](#appendix-validation)
-
----
-
-<a id="repository-layout"></a>
+- [仓库结构与文件位置](#仓库结构与文件位置)
+- [00 为什么用 ROS2](#00-为什么用-ros2)
+- [01 环境准备与工作区](#01-环境准备与工作区)
+- [02 turtlesim 初体验](#02-turtlesim-初体验)
+- [03 第一个 Python 节点](#03-第一个-python-节点)
+- [04 自定义消息](#04-自定义消息)
+- [05 服务与参数](#05-服务与参数)
+- [06 launch 文件](#06-launch-文件)
+- [07 TF2 坐标变换](#07-tf2-坐标变换)
+- [08 串口对接电控板](#08-串口对接电控板)
+- [09 实战：MuJoCo 接入 ROS2](#09-实战mujoco-接入-ros2)
+- [第 09 章第 5 节：大作业](#5-大作业把控制解算搬到-ros2-里)
+- [附录：VS Code 插件](#附录vs-code-插件)
 
 ## 仓库结构与文件位置
 
@@ -40,7 +27,7 @@
 ```text
 <包根>/
 ├── README.md                         # 入口：环境、构建自检、学习顺序、作业与排错
-├── ROS2_入门_完整教程.md               # 当前合订版，适合连续阅读或导入飞书
+├── ROS2_入门_完整教程.md               # 完整教程
 ├── Tutorial/
 │   ├── ROS2_入门/                    # 教程正文：00–09 共 10 篇 Markdown
 │   │   ├── README.md                 # 索引、学习路线、VS Code 插件清单
@@ -145,10 +132,6 @@ ros2 run my_first_pkg listener    # 终端 B：能收到消息就说明基础通
 1. **`ros2_ws` 所在的整条构建路径使用纯英文。** 本教程的接口生成工具链在中文路径下出现过截断和构建失败，即使 locale 为 UTF-8 也不能解决。建议先建 `mkdir -p ~/rm_hw`，不要放进 `~/下载/` 或 `~/桌面/`。文档目录 `ROS2_入门/` 不在构建路径上，含中文没有问题。
 2. **大作业复用 `Wheel_Leg/` 的解算模块，不需要从零推导 LQR / VMC。** 考点是「把控制回路拆成两个 ROS2 节点」，不是重新实现控制算法。冻结的仿真节点不写控制律，你的新包只通过话题交换状态和力矩。
 
----
-
-<a id="chapter-00"></a>
-
 ## 00 为什么用 ROS2
 
 ### 先看一个真实场景
@@ -222,10 +205,6 @@ ROS2（Robot Operating System 2）不是操作系统，而是一套**机器人�
 ```
 
 第 9 章会带你亲手实现上面第一行（仿真 ↔ 控制节点）。
-
----
-
-<a id="chapter-01"></a>
 
 ## 01 环境准备与工作区
 
@@ -536,11 +515,7 @@ mkdir -p ~/rm_hw && cd ~/rm_hw     # 之后把 ros2_ws 放在这里
 
 ### 7. VS Code 插件（可选但推荐）
 
-安装清单见 [README](#appendix-vscode)。装好后打开 `ros2_ws` 目录，`Ctrl+Shift+B` 可以直接跑 colcon 构建任务（由 ROS 扩展提供）。
-
----
-
-<a id="chapter-02"></a>
+安装清单见[附录：VS Code 插件](#附录vs-code-插件)。装好后打开 `ros2_ws` 目录，`Ctrl+Shift+B` 可以直接跑 colcon 构建任务（由 ROS 扩展提供）。
 
 ## 02 turtlesim 初体验
 
@@ -653,10 +628,6 @@ rqt_graph
 3. **服务** = 一问一答，`ros2 service call` 调用。
 
 下一章开始自己写节点。
-
----
-
-<a id="chapter-03"></a>
 
 ## 03 第一个 Python 节点
 
@@ -822,10 +793,6 @@ ros2 topic hz /chatter           # 看发布频率（应为 2.0 Hz）
 3. `package.xml` 声明依赖，`setup.py` 的 `entry_points` 声明可执行命令。
 4. 加了新包/改了 setup.py 后要重新 `colcon build`（`--symlink-install` 下改 `.py` 代码本身不用重建）。
 
----
-
-<a id="chapter-04"></a>
-
 ## 04 自定义消息
 
 第 3 章用的 `String` 是别人定义好的标准消息。实际开发里，我们需要**自定义消息类型**来表达队里自己的数据。
@@ -971,10 +938,6 @@ from rm_msgs.srv import SetGimbalAngle
 2. **接口包用 ament_cmake**，靠 `CMakeLists.txt` 里的 `rosidl_generate_interfaces` 生成代码。
 3. 一定要在 package.xml 加 `<member_of_group>rosidl_interface_packages</member_of_group>`。
 4. 命名建议：字段名小写下划线（`target_yaw`），注释用 `#`。
-
----
-
-<a id="chapter-05"></a>
 
 ## 05 服务与参数
 
@@ -1122,10 +1085,6 @@ AttributeError: __enter__
 3. 命令行：`ros2 service call`、`ros2 param get/set`。
 4. **方法名别用 `handle`**。
 
----
-
-<a id="chapter-06"></a>
-
 ## 06 launch 文件
 
 前面都是一个一个 `ros2 run` 启动节点。真实系统里动辄十几个节点，手动起不现实。**launch 文件**让你一次启动多个节点、顺便传参。
@@ -1226,10 +1185,6 @@ data_files=[
 2. `parameters` 传参、`arguments` 传 argv。
 3. launch 文件要写进 `setup.py` 的 `data_files`。
 4. 调试技巧：`ros2 launch` 出问题先单独 `ros2 run` 每个节点定位。
-
----
-
-<a id="chapter-07"></a>
 
 ## 07 TF2 坐标变换
 
@@ -1340,10 +1295,6 @@ ros2 run tf2_tools view_frames                    # 生成 frames.pdf 图
 2. 静态用 `StaticTransformBroadcaster`，动态用 `TransformBroadcaster`（**必须带时间戳**）。
 3. 查询用 `Buffer.lookup_transform`，要 `try/except`。
 4. RM 里典型链：`odom → base_link → gimbal_link → camera_link`。
-
----
-
-<a id="chapter-08"></a>
 
 ## 08 串口对接电控板
 
@@ -1467,10 +1418,6 @@ ros2 run <pkg> serial_bridge --ros-args -p port:=/dev/ttyUSB0 -p baudrate:=11520
 1. 桥接节点 = 串口线程 + 话题收发，串口读写放后台线程。
 2. 用 `pyserial`，参数化 `port`/`baudrate`。
 3. 别传裸字符串，用自定义消息。
-
----
-
-<a id="chapter-09"></a>
 
 ## 09 实战：MuJoCo 接入 ROS2
 
@@ -1598,7 +1545,7 @@ def publish_imu(self):
 
 ### 4. 运行验证
 
-依赖（MuJoCo）装在 conda 环境 `rm_ros2` 里，**构建和运行都要先激活它**（创建方法和完整依赖清单见[第 1 章](#chapter-01)第 4 节）：
+依赖（MuJoCo）装在 conda 环境 `rm_ros2` 里，**构建和运行都要先激活它**（创建方法和完整依赖清单见[第 1 章](#01-环境准备与工作区)第 4 节）：
 
 ```bash
 conda activate rm_ros2
@@ -1621,8 +1568,6 @@ ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist \
 ```
 
 > 说明：`wheel_leg_bridge` 只做了"数据通路"，没有接 LQR/VMC 平衡控制器，所以车体会倒——这是**故意的**。平衡控制正是下一节大作业要你做的事。
-
-<a id="chapter-09-assignment"></a>
 
 ### 5. 大作业：把控制解算搬到 ROS2 里
 
@@ -1846,11 +1791,7 @@ ros2 topic echo /joy --once            # 看 axes / buttons 布局
 
 到这里，你已经走完"从零 → 概念 → 工具 → 自写节点 → 消息/服务/TF → 串口 → 实战接入仿真"的完整链路。剩下的就是大作业和真实项目了。
 
----
-
-<a id="appendix-vscode"></a>
-
-## 附录 A：VS Code 插件
+## 附录：VS Code 插件
 
 在扩展市场搜索安装：
 
@@ -1864,25 +1805,3 @@ ros2 topic echo /joy --once            # 看 axes / buttons 布局
 | `redhat.vscode-xml` | URDF/XACRO 高亮 |
 | `smilerobotics.urdf` | URDF 模型预览 |
 | `yzhang.markdown-all-in-one` | 写文档/教程 |
-
----
-
-<a id="appendix-validation"></a>
-
-## 附录 B：验证范围与结果
-
-除原教程的环境记录外，修订版还在 **Ubuntu 22.04.5 LTS / aarch64 / ROS2 Humble / Python 3.10.12** 上做过独立验证。该次测试使用系统包可见的隔离 venv、MuJoCo 3.3.7 和 NumPy 1.21.5；不是对所有 Python / ROS 发行版的兼容性承诺。
-
-| 项目 | 结果 |
-|---|---|
-| 6 个功能包 `colcon build --symlink-install` | 全部通过，退出码 0 |
-| 节点逻辑回归测试 | 8 项全部通过 |
-| 无显示环境启动与心跳 | 自动跳过查看器，发布有效四元数，不自行推进仿真 |
-| 一条执行器指令 | 恰好推进 0.002 s；停发后仿真时间不再增加 |
-| ROS2 话题与 TF | 真实 DDS 通信通过，确认右轮方向修正和 pitch 绕 Y 轴 |
-| 独立控制器进程 ↔ 仿真进程 | 10 s **仿真时间**站桩，5001 个状态样本；全程最大绝对 pitch 4.90°，后 5 s 最大 0.116° |
-| 控制器晚启动 | 仿真先启动，控制器延迟启动后通过心跳接入，完成闭环 |
-
-平衡验证使用临时 ROS2 控制探针，复用原工程的纯算法模块，只通过话题与仿真进程通信；没有把解答放进 `src/`，`wheel_leg_controller` 仍由学生自己实现。
-
-**验证边界：** 这次是无界面测试，未验收真实 GUI、turtlesim / rqt 的图形显示、实体串口电控板、手柄硬件，也未验证 Ubuntu 24.04 / Jazzy。串口协议和硬件权限仍需按实际设备配置。
