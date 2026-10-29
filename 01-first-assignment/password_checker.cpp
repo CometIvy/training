@@ -3,8 +3,7 @@
 // 现第26行：类型错误，定义的是字符，这里的0和9是整型
 // 现第29行：int checked=0,这里定义了一个没有用的变量，会被警告
 /*  模拟测试输入：Dan Chen Cgd3564442091
-    预期输出:VALID
-    */
+    预期输出:VALID */
 #include <iostream>
 #include <string>
 
